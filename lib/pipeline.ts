@@ -261,6 +261,38 @@ Write this section fully and completely. Include the section heading (use ## for
 
 // ─── Stage 5 ─────────────────────────────────────────────────────────────────
 
+const POLISH_CHUNK_SIZE = 20000; // chars — safe limit for one polish call
+
+async function polishChunk(client: Anthropic, chunk: string, keyword: string): Promise<string> {
+  const response = await client.messages.create(
+    {
+      model: MODEL,
+      max_tokens: 8000,
+      messages: [
+        {
+          role: 'user',
+          content: `You are a master editor. Polish this article content about "${keyword}" to publish-ready quality.
+
+Tasks:
+- Ensure smooth, natural transitions between sections
+- Maintain a consistent, authoritative tone
+- Fix any repetition, awkward phrasing, or structural issues
+- Do not add filler — cut anything that weakens the piece
+- Keep all section headings
+
+Return only the polished content. No commentary, no preamble.
+
+CONTENT TO POLISH:
+${chunk}`,
+        },
+      ],
+    },
+    { timeout: 180 * 1000 } // 3 minutes per chunk
+  );
+
+  return response.content[0].type === 'text' ? response.content[0].text : chunk;
+}
+
 export async function runStage5(
   draft: string,
   stage1: Stage1Result,
@@ -268,44 +300,56 @@ export async function runStage5(
 ): Promise<FinalResult> {
   const client = getClient();
 
-  const prompt = `You are a master editor. Polish this article draft to publish-ready quality.
+  // Split large drafts into chunks and polish in parallel
+  let polishedArticle: string;
 
-Tasks:
-1. Ensure smooth, natural transitions between all sections
-2. Maintain a consistent, authoritative tone throughout
-3. Strengthen the introduction with a compelling hook (question, statistic, or bold claim)
-4. Write a final headline that includes the primary keyword: "${stage1.primaryKeyword}"
-5. Write a meta description (150–160 characters, includes primary keyword, compelling)
-6. Fix any repetition, awkward phrasing, or structural issues
-7. Do not add filler — cut anything that weakens the piece
+  if (draft.length <= POLISH_CHUNK_SIZE) {
+    polishedArticle = await polishChunk(client, draft, stage1.primaryKeyword);
+  } else {
+    // Split at a paragraph boundary near the midpoint
+    const mid = Math.floor(draft.length / 2);
+    const splitAt = draft.indexOf('\n\n', mid);
+    const boundary = splitAt !== -1 ? splitAt : mid;
 
-Return the response in this EXACT format (keep the separators):
+    const half1 = draft.slice(0, boundary).trim();
+    const half2 = draft.slice(boundary).trim();
 
-HEADLINE: [Your compelling headline]
-META: [Your 150–160 character meta description]
+    const [polished1, polished2] = await Promise.all([
+      polishChunk(client, half1, stage1.primaryKeyword),
+      polishChunk(client, half2, stage1.primaryKeyword),
+    ]);
 
----
+    polishedArticle = polished1 + '\n\n' + polished2;
+  }
 
-[The complete polished article here]
+  // Generate headline + meta description as a fast separate call
+  const metaResponse = await client.messages.create(
+    {
+      model: MODEL,
+      max_tokens: 300,
+      messages: [
+        {
+          role: 'user',
+          content: `Write a compelling SEO headline and meta description for an article about: "${stage1.primaryKeyword}"
 
-DRAFT TO POLISH:
-${draft}`;
+Article summary: ${stage1.articleSummary}
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 8000,
-    messages: [{ role: 'user', content: prompt }],
-  });
+Return in this EXACT format (no other text):
+HEADLINE: [compelling headline with primary keyword]
+META: [150–160 character meta description with primary keyword]`,
+        },
+      ],
+    },
+    { timeout: 60 * 1000 }
+  );
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
-
-  const headlineMatch = text.match(/^HEADLINE:\s*(.+)$/m);
-  const metaMatch = text.match(/^META:\s*(.+)$/m);
-  const articleMatch = text.match(/---\s*\n([\s\S]+)$/);
+  const metaText = metaResponse.content[0].type === 'text' ? metaResponse.content[0].text : '';
+  const headlineMatch = metaText.match(/^HEADLINE:\s*(.+)$/m);
+  const metaMatch = metaText.match(/^META:\s*(.+)$/m);
 
   return {
     headline: headlineMatch ? headlineMatch[1].trim() : suggestedTitle,
     metaDescription: metaMatch ? metaMatch[1].trim() : '',
-    article: articleMatch ? articleMatch[1].trim() : text,
+    article: polishedArticle,
   };
 }
