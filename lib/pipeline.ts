@@ -97,7 +97,7 @@ ${articleContent.slice(0, 40000)}`;
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 3000,
+    max_tokens: 6000,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -195,7 +195,7 @@ Rules:
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 3000,
+    max_tokens: 8000,
     messages: [{ role: 'user', content: prompt }],
   });
 
