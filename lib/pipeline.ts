@@ -224,6 +224,12 @@ export async function runStage4Section(
       ? `\nSUPPLEMENTARY INSIGHTS TO WEAVE IN NATURALLY (use the author's voice and perspective):\n${stage1.supplementaryInsights}\n`
       : '';
 
+  // Use less source material for later sections — previous written sections
+  // already establish context and style, so the full original is not needed
+  const sourceMaterial = previousContent
+    ? stage1.rawContent.slice(0, 5000)
+    : stage1.rawContent.slice(0, 12000);
+
   const prompt = `You are an expert content writer. Write the following section for a refreshed article.
 
 ARTICLE CONTEXT:
@@ -236,16 +242,19 @@ SECTION TO WRITE:
 - Instruction: ${section.instruction}
 ${supplementaryNote}
 SOURCE MATERIAL (original article for reference):
-${stage1.rawContent.slice(0, 15000)}
-${previousContent ? `\nPREVIOUSLY WRITTEN SECTIONS (maintain consistency of voice and style):\n${previousContent.slice(-3000)}` : ''}
+${sourceMaterial}
+${previousContent ? `\nPREVIOUSLY WRITTEN SECTIONS (maintain consistency of voice and style):\n${previousContent.slice(-2000)}` : ''}
 
 Write this section fully and completely. Include the section heading (use ## for H2). Write real, high-quality, publish-ready content. Natural, authoritative, engaging voice. No placeholders.`;
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 3000,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const response = await client.messages.create(
+    {
+      model: MODEL,
+      max_tokens: 5000,
+      messages: [{ role: 'user', content: prompt }],
+    },
+    { timeout: 120 * 1000 } // 2-minute timeout per section
+  );
 
   return response.content[0].type === 'text' ? response.content[0].text : '';
 }
