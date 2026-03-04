@@ -40,7 +40,9 @@ function extractJson(text: string): Record<string, unknown> {
     }
   }
 
-  throw new Error('Could not parse JSON from Claude response');
+  // Include first 300 chars of raw response in error to aid debugging
+  const preview = text.slice(0, 300).replace(/\n/g, ' ');
+  throw new Error(`Could not parse JSON from Claude response. Raw preview: "${preview}"`);
 }
 
 // ─── Stage 1 ─────────────────────────────────────────────────────────────────
