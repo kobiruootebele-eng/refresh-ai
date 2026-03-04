@@ -346,6 +346,17 @@ export default function Home() {
         </div>
 
         <p className="mt-8 text-slate-700 text-xs">Powered by Claude · Jina AI · ValueSERP</p>
+
+        {/* Free tier caveat */}
+        <div className="mt-6 flex items-start gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 max-w-2xl text-left">
+          <span className="text-amber-400 text-base mt-0.5 flex-shrink-0">⚠️</span>
+          <p className="text-amber-300/80 text-xs leading-relaxed">
+            <span className="font-semibold text-amber-300">Heads up:</span> This app is hosted on
+            Render&apos;s free tier, which spins down after 15 minutes of inactivity. If the page
+            feels slow to load, wait 30–60 seconds for it to wake up. The pipeline itself (2–5 min)
+            runs fine once the server is awake.
+          </p>
+        </div>
       </div>
     </main>
   );

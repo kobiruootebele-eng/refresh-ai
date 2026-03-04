@@ -8,20 +8,38 @@ function getClient(): Anthropic {
 }
 
 function extractJson(text: string): Record<string, unknown> {
-  // Try JSON inside a code block first
-  const codeBlock = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
-  if (codeBlock) {
-    try {
-      return JSON.parse(codeBlock[1]) as Record<string, unknown>;
-    } catch {}
+  const attempts: string[] = [];
+
+  // 1. JSON inside ```json ... ``` block
+  const jsonFence = text.match(/```json\s*\n?([\s\S]*?)\n?```/);
+  if (jsonFence) attempts.push(jsonFence[1].trim());
+
+  // 2. JSON inside ``` ... ``` block (no language tag)
+  const plainFence = text.match(/```\s*\n?([\s\S]*?)\n?```/);
+  if (plainFence) attempts.push(plainFence[1].trim());
+
+  // 3. Largest {...} block in the text
+  const allObjects = text.match(/\{[\s\S]*\}/g);
+  if (allObjects) {
+    // Pick the longest match (most likely the full object)
+    const longest = allObjects.reduce((a, b) => (b.length > a.length ? b : a), '');
+    attempts.push(longest);
   }
-  // Try raw JSON object
-  const rawJson = text.match(/\{[\s\S]*\}/);
-  if (rawJson) {
+
+  // 4. The entire trimmed text
+  attempts.push(text.trim());
+
+  for (const candidate of attempts) {
     try {
-      return JSON.parse(rawJson[0]) as Record<string, unknown>;
-    } catch {}
+      const parsed = JSON.parse(candidate);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // try next candidate
+    }
   }
+
   throw new Error('Could not parse JSON from Claude response');
 }
 
