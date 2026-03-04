@@ -243,7 +243,7 @@ Write this section fully and completely. Include the section heading (use ## for
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 2000,
+    max_tokens: 3000,
     messages: [{ role: 'user', content: prompt }],
   });
 
