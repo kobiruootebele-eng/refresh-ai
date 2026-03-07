@@ -134,16 +134,12 @@ ${stage1.supplementaryInsights ? `\nAVAILABLE SUPPLEMENTARY INSIGHTS (unique aut
 TOP COMPETITOR ARTICLES FROM GOOGLE:
 ${competitorContent.slice(0, 80000)}
 
-Identify ONLY gaps that are evidenced by what competitors are actually covering. Never invent gaps.
+Identify ONLY high-impact gaps clearly evidenced by multiple competitors. Never invent gaps. Ignore minor or superficial differences, and ignore anything only one competitor covers.
 
-Produce a prioritized gap report covering:
-1. Missing sections that multiple competitors cover
-2. Weak or thin areas in the original vs what competitors offer
-3. Unanswered questions and missing FAQs
-4. Missing data, statistics, or examples competitors reference
-5. Structural improvements (intro hook, conclusion, header hierarchy)
-${stage1.supplementaryInsights ? '6. How to leverage the available supplementary insights for competitive advantage' : ''}
+Focus on gaps that would meaningfully improve this article's ability to rank — topics, sections, or angles that the original misses or handles poorly that multiple competitors get right.
 
+Produce a concise, prioritized gap report. Quality over quantity — a short list of real gaps is better than a long list of weak ones.
+${stage1.supplementaryInsights ? '\nAlso note where the available supplementary insights could fill a gap or add competitive advantage.' : ''}
 Be specific and cite competitor patterns as evidence. Output only the gap report — no article writing.`;
 
   const response = await client.messages.create({
@@ -187,6 +183,8 @@ Return ONLY valid JSON — no markdown fences, no explanation:
 
 Rules:
 - Include ALL sections of the refreshed article (not just changed ones)
+- Maximum 12 sections total. Use fewer if the article can be made competitive with less — do not pad
+- Every section must earn its place. Only include a section if it genuinely adds ranking value
 - "action" must be exactly one of: keep, rewrite, expand, cut, add
 - Instructions must be specific and actionable — not vague
 - Set insertSupplementaryInsights: true only when that section should feature insights from the supplementary content

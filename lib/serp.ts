@@ -20,7 +20,7 @@ export async function researchSerp(keyword: string): Promise<Stage1bResult> {
   const params = new URLSearchParams({
     api_key: apiKey,
     q: keyword,
-    num: '10',
+    num: '5',
   });
 
   const response = await fetch(
@@ -39,7 +39,7 @@ export async function researchSerp(keyword: string): Promise<Stage1bResult> {
   }
 
   const organicResults: SerpResult[] = (data.organic_results ?? [])
-    .slice(0, 10)
+    .slice(0, 5)
     .map((r) => ({ url: r.link, title: r.title }));
 
   // Scrape each competitor in parallel (with concurrency limit of 3)
